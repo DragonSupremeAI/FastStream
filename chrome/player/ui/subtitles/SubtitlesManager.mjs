@@ -9,6 +9,8 @@ import {Utils} from '../../utils/Utils.mjs';
 import {WebUtils} from '../../utils/WebUtils.mjs';
 import {DOMElements} from '../DOMElements.mjs';
 import {OpenSubtitlesSearch, OpenSubtitlesSearchEvents} from './OpenSubtitlesSearch.mjs';
+import {detectSubtitleCode, subtitleLanguage} from '../../utils/SubtitleIdentity.mjs';
+import {EnvUtils} from '../../utils/EnvUtils.mjs';
 import {SubtitlesSettingsManager, SubtitlesSettingsManagerEvents} from './SubtitlesSettingsManager.mjs';
 import {SubtitleSyncer} from './SubtitleSyncer.mjs';
 
@@ -32,6 +34,10 @@ export class SubtitlesManager extends EventEmitter {
     this.openSubtitlesSearch.on(OpenSubtitlesSearchEvents.TRACK_DOWNLOADED, this.onSubtitleTrackDownloaded.bind(this));
 
     this.subtitleSyncer = new SubtitleSyncer(client);
+    this.loadedLocalSubtitleNames = new Set();
+    this.localTracks = new Set();
+    this.localCode = null;
+    this.localScanGeneration = 0;
 
     this.setupUI();
   }
@@ -239,6 +245,34 @@ export class SubtitlesManager extends EventEmitter {
       filechooser.click();
     });
     DOMElements.subtitlesView.appendChild(filebutton);
+
+    if (EnvUtils.isExtension()) {
+      const folderbutton = document.createElement('div');
+      folderbutton.classList.add('subtitle-menu-option');
+      folderbutton.textContent = 'Local subtitle folder settings';
+      WebUtils.setupTabIndex(folderbutton);
+      folderbutton.addEventListener('click', () => {
+        chrome.runtime.sendMessage({type: 'LOCAL_SUBTITLE_SETTINGS'}).catch((error) => {
+          AlertPolyfill.toast('error', error.message);
+        });
+      });
+      DOMElements.subtitlesView.appendChild(folderbutton);
+
+      const rescan = document.createElement('div');
+      rescan.classList.add('subtitle-menu-option');
+      rescan.textContent = 'Check subtitle folder now';
+      WebUtils.setupTabIndex(rescan);
+      rescan.addEventListener('click', () => this.loadMatchingLocalSubtitles());
+      DOMElements.subtitlesView.appendChild(rescan);
+      this.localSubtitleStatus = document.createElement('div');
+      this.localSubtitleStatus.setAttribute('role', 'status');
+      this.localSubtitleStatus.style.cssText = 'padding: 8px 16px; font-size: 0.85em;';
+      DOMElements.subtitlesView.appendChild(this.localSubtitleStatus);
+      window.addEventListener('focus', () => this.loadMatchingLocalSubtitles());
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) this.loadMatchingLocalSubtitles();
+      });
+    }
 
     const urlbutton = document.createElement('div');
     urlbutton.classList.add('subtitle-menu-option');
@@ -715,5 +749,69 @@ export class SubtitlesManager extends EventEmitter {
 
   mediaInfoSet() {
     this.openSubtitlesSearch.setMediaInfo(this.client.mediaInfo);
+    this.loadMatchingLocalSubtitles();
+  }
+
+  resetLocalSubtitles() {
+    this.localScanGeneration++;
+    this.tracks = this.tracks.filter((track) => !this.localTracks.has(track));
+    this.activeTracks = this.activeTracks.filter((track) => !this.localTracks.has(track));
+    this.localTracks.clear();
+    this.loadedLocalSubtitleNames.clear();
+    this.updateTrackList();
+  }
+
+  async loadMatchingLocalSubtitles() {
+    if (!EnvUtils.isExtension()) return;
+    const info = this.client.mediaInfo;
+    const code = detectSubtitleCode(info?.originalTitle ?? info?.name);
+    if (code !== this.localCode) {
+      this.resetLocalSubtitles();
+      this.localCode = code;
+    }
+    const generation = ++this.localScanGeneration;
+    const setStatus = (message) => {
+      if (this.localSubtitleStatus) this.localSubtitleStatus.textContent = message;
+    };
+    try {
+      const result = await chrome.runtime.sendMessage({type: 'LOCAL_SUBTITLE_SCAN', code});
+      if (generation !== this.localScanGeneration) return;
+      if (!result || result.status === 'error') throw new Error(result?.message || 'Folder scan did not respond. Reload the extension and page.');
+      if (result.status === 'unconfigured') {
+        setStatus('Choose a folder in Local subtitle folder settings to enable automatic subtitles.');
+        return;
+      }
+      if (result.status === 'permission-required') {
+        setStatus(`Restore access to ${result.name} in Local subtitle folder settings.`);
+        return;
+      }
+      if (!code) {
+        setStatus('No video code found in the page title.');
+        return;
+      }
+      let failed = result.errors?.length || 0;
+      for (const file of result.files) {
+        if (this.loadedLocalSubtitleNames.has(file.name)) continue;
+        try {
+          const track = new SubtitleTrack(file.name, subtitleLanguage(file.name));
+          track.loadText(file.text);
+          if (!track.cues.length) {
+            failed++;
+            continue;
+          }
+          const added = this.loadTrackAndActivateBest(track, true);
+          if (added === track) this.localTracks.add(track);
+          this.loadedLocalSubtitleNames.add(file.name);
+        } catch (error) {
+          failed++;
+          console.error('Unable to parse local subtitle', file.name, error);
+        }
+      }
+      setStatus(`${code}: ${this.loadedLocalSubtitleNames.size} matching subtitle(s) added from ${result.name}.${failed ? ` ${failed} file(s) could not be loaded.` : ''}`);
+    } catch (error) {
+      if (generation !== this.localScanGeneration) return;
+      setStatus(`Subtitle folder: ${error.message}`);
+      console.error('Unable to load local subtitles', error);
+    }
   }
 }

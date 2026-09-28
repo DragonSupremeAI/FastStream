@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Загрузить субтитры"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Выбрать локальную папку субтитров"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Ссылка"
     },

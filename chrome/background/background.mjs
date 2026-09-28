@@ -10,6 +10,8 @@ import {RuleManager} from './NetRequestRuleManager.mjs';
 import {SponsorBlockIntegration} from './SponsorBlockIntegration.mjs';
 import {StreamSaverBackend} from './StreamSaverBackend.mjs';
 import {TabTracker} from './TabTracker.mjs';
+import {LocalSubtitleFolder} from '../player/ui/subtitles/LocalSubtitleFolder.mjs';
+import {NativeSubtitleFolder} from '../player/ui/subtitles/NativeSubtitleFolder.mjs';
 
 let Options = {};
 const OptionsCache = {};
@@ -156,10 +158,37 @@ chrome.tabs.onUpdated.addListener((tabid, changeInfo, tabobj) => {
     }
   }
 
+  if (changeInfo.title) {
+    for (const frame of tab.getFrames()) {
+      if (frame.isPlayer) {
+        chrome.tabs.sendMessage(tabid, {type: 'LOCAL_SUBTITLE_MEDIA_INFO', mediaInfo: getMediaInfoFromTab(tabobj)}, {frameId: frame.frameId}).catch(() => {});
+      }
+    }
+  }
   BackgroundUtils.updateTabIcon(tab, true);
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (['LOCAL_SUBTITLE_SCAN', 'LOCAL_SUBTITLE_SETTINGS', 'LOCAL_SUBTITLE_FOLDER_CHANGED'].includes(msg.type)) {
+    // Files must only be returned to our extension pages, never a website's content script.
+    if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(''))) return;
+    (async () => {
+      if (msg.type === 'LOCAL_SUBTITLE_SCAN') {
+        const {localSubtitleBackend} = await chrome.storage.local.get('localSubtitleBackend');
+        const folder = localSubtitleBackend === 'native' ? new NativeSubtitleFolder() : new LocalSubtitleFolder();
+        return await folder.scanForCode(msg.code);
+      }
+      if (msg.type === 'LOCAL_SUBTITLE_SETTINGS') {
+        await chrome.tabs.create({url: chrome.runtime.getURL('player/options/subtitle-folder.html')});
+      } else {
+        for (const tab of await chrome.tabs.query({})) {
+          chrome.tabs.sendMessage(tab.id, {type: 'LOCAL_SUBTITLE_RESCAN'}).catch(() => {});
+        }
+      }
+      return {status: 'ok'};
+    })().then(sendResponse, (error) => sendResponse({status: 'error', message: error.message, files: []}));
+    return true;
+  }
   if (msg.type === MessageTypes.PING) {
     sendResponse(MessageTypes.PONG);
     return;
@@ -181,6 +210,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return;
   }
 
+  if (!sender.tab) return;
   const tab = Tabs.getTabOrCreate(sender.tab.id);
   const frame = tab.getFrameOrCreate(sender.frameId);
 
@@ -861,6 +891,7 @@ function getMediaInfoFromTab(tab) {
 
   return {
     name: title.replace(/\s\s+/g, ' ').trim(),
+    originalTitle: tab.title || '',
     season: season,
     episode: episode,
   };

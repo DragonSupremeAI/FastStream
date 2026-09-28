@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Carregar arquivo"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Selecionar pasta local de legendas"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "De URL"
     },

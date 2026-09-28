@@ -24,7 +24,9 @@ export class HLSFragmentRequester {
     const frag = fragment.getFrag();
 
     if (frag.decryptdata) {
-      throw new Error('unexpected decryptdata');
+      frag.fs_oldcryptdata ||= frag.decryptdata;
+      frag.levelkeys = null;
+      frag._decryptdata = null;
     }
     let keyPromise;
 

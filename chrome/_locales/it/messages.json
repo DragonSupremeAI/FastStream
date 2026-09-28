@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Carica File"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Seleziona cartella sottotitoli locale"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Da un URL"
     },

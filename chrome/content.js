@@ -28,6 +28,15 @@
   let MiniplayerCooldown = 0;
   let Activated = false;
 
+  function safeRuntimeMessage(...args) {
+    try {
+      const response = chrome.runtime.sendMessage(...args);
+      response?.catch(() => {});
+    } catch (e) {
+      // The content script can outlive the extension during reloads.
+    }
+  }
+
   let resizeDebounce = Date.now();
   const Config = {
     softReplaceByDefault: true,
@@ -183,7 +192,7 @@
   }
 
   async function sendToOtherContents(message) {
-    chrome.runtime.sendMessage({
+    safeRuntimeMessage({
       type: 'SEND_TO_CONTENT',
       data: message,
       destination: 'custom',
@@ -439,7 +448,7 @@
 
     return Promise.all(frameIds.map((id) => {
       return new Promise((resolve) => {
-        chrome.runtime.sendMessage({
+        safeRuntimeMessage({
           type: MessageTypes.SEND_TO_PLAYER,
           frameId: id,
           data,
@@ -531,7 +540,7 @@
 
         iframeObj.replacedData = null;
 
-        chrome.runtime.sendMessage({
+        safeRuntimeMessage({
           type: MessageTypes.FRAME_REMOVED,
           frameId: iframeObj.frameId,
         });
@@ -1477,7 +1486,7 @@
   });
 
   window.addEventListener('beforeunload', () => {
-    chrome.runtime.sendMessage({
+    safeRuntimeMessage({
       type: MessageTypes.FRAME_REMOVED,
     });
   });
@@ -1488,7 +1497,7 @@
     });
   });
 
-  chrome.runtime.sendMessage({
+  safeRuntimeMessage({
     type: MessageTypes.FRAME_ADDED,
     url: window.location.href,
   });

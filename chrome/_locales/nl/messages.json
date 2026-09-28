@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Bestand uploaden"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Lokale ondertitelmap selecteren"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Van URL"
     },

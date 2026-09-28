@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Unggah file"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Pilih folder subtitle lokal"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Dari URL"
     },

@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Dosya yükle"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Yerel altyazı klasörünü seç"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "URL'den"
     },

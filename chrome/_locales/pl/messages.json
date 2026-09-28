@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Prześlij plik"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Wybierz lokalny folder napisów"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Z adresu URL"
     },

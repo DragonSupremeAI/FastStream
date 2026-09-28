@@ -1925,6 +1925,24 @@
         "zh_CN": "上传文件",
         "zh_TW": "上傳檔案"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "en": "Select local subtitle folder",
+        "de": "Lokalen Untertitelordner auswählen",
+        "es": "Seleccionar carpeta de subtítulos local",
+        "fr": "Sélectionner le dossier local de sous-titres",
+        "id": "Pilih folder subtitle lokal",
+        "it": "Seleziona cartella sottotitoli locale",
+        "ja": "ローカル字幕フォルダーを選択",
+        "ko": "로컬 자막 폴더 선택",
+        "ms": "Pilih folder sari kata tempatan",
+        "nl": "Lokale ondertitelmap selecteren",
+        "pl": "Wybierz lokalny folder napisów",
+        "pt_BR": "Selecionar pasta local de legendas",
+        "ru": "Выбрать локальную папку субтитров",
+        "tr": "Yerel altyazı klasörünü seç",
+        "zh_CN": "选择本地字幕文件夹",
+        "zh_TW": "選擇本地字幕資料夾"
+    },
     "player_subtitlesmenu_urlbtn": {
         "en": "From URL",
         "de": "Von URL",

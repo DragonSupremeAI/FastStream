@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "ファイルをアップロード"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "ローカル字幕フォルダーを選択"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "URL から"
     },

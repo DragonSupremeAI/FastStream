@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Muatnaik Fail"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Pilih folder sari kata tempatan"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "Dari URL"
     },

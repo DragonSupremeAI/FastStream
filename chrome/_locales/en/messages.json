@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "Upload File"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "Select local subtitle folder"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "From URL"
     },
@@ -577,9 +580,6 @@
     },
     "player_source_accelvm": {
         "message": "Accelerated Vimeo"
-    },
-    "player_source_accelpanopto": {
-        "message": "Accelerated Panopto"
     },
     "player_source_mode": {
         "message": "Mode"

@@ -312,7 +312,8 @@ export class VideoQualityChanger extends EventEmitter {
 
     const current = videoLevels.get(currentVideoLevelID);
     if (!current) {
-      console.warn('No current level');
+      // A manifest can briefly have no selected level while hls.js is switching
+      // renditions. The menu will be refreshed by the next level event.
       return;
     }
     let maxSize = Math.min(current.width, current.height);

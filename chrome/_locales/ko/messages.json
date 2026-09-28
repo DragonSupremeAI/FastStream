@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "파일 업로드"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "로컬 자막 폴더 선택"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "URL에서 불러오기"
     },

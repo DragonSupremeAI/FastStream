@@ -97,7 +97,8 @@
     "tabs",
     "webRequest",
     "declarativeNetRequest",
-    "userScripts"
+    "userScripts",
+    "nativeMessaging"
   ],
   "host_permissions": [
     "<all_urls>"

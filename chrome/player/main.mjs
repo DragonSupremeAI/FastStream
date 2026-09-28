@@ -13,10 +13,26 @@ import {VideoSource} from './VideoSource.mjs';
 
 let OPTIONS = null;
 let optionSendTime = null;
+
+function safeRuntimeMessage(message) {
+  try {
+    const response = chrome.runtime.sendMessage(message);
+    return response?.catch(() => null) ?? null;
+  } catch (e) {
+    return null;
+  }
+}
 if (EnvUtils.isExtension()) {
   chrome.runtime.onMessage.addListener(
       (request, sender, sendResponse) => {
-        if (request.type === MessageTypes.FRAME_LINK_SENDER) {
+        if (request.type === 'LOCAL_SUBTITLE_MEDIA_INFO' && window.fastStream) {
+          window.fastStream.setMediaInfo(request.mediaInfo);
+          return;
+        } else if (request.type === 'LOCAL_SUBTITLE_RESCAN' && window.fastStream) {
+          window.fastStream.interfaceController.subtitlesManager.resetLocalSubtitles();
+          window.fastStream.interfaceController.subtitlesManager.loadMatchingLocalSubtitles();
+          return;
+        } else if (request.type === MessageTypes.FRAME_LINK_SENDER) {
           window.parent.postMessage(request.key, '*');
           sendResponse('ok');
           return;
@@ -58,10 +74,18 @@ if (EnvUtils.isExtension()) {
         sendResponse('ok');
       });
 
-  setInterval(() => {
-    chrome.runtime.sendMessage({
-      type: MessageTypes.PING,
-    });
+  let pingInterval;
+  pingInterval = setInterval(() => {
+    try {
+      const ping = safeRuntimeMessage({
+        type: MessageTypes.PING,
+      });
+      ping?.catch(() => {
+        clearInterval(pingInterval);
+      });
+    } catch (e) {
+      clearInterval(pingInterval);
+    }
   }, 10000);
 }
 
@@ -209,7 +233,7 @@ async function loadSubtitles(subs) {
         };
       });
 
-      await chrome.runtime.sendMessage({
+      await safeRuntimeMessage({
         type: MessageTypes.SET_HEADERS,
         url: sub.source,
         commands: customHeaderCommands,
@@ -285,12 +309,13 @@ async function setup() {
 
   if (EnvUtils.isExtension()) {
     const urlParams = new URLSearchParams(window.location.search);
-    chrome?.runtime?.sendMessage({
+    const playerLoaded = safeRuntimeMessage({
       type: MessageTypes.PLAYER_LOADED,
       url: window.location.href,
       isExt: true,
       parentFrameId: urlParams.has('parent_frame_id') ? parseInt(urlParams.get('parent_frame_id')) : undefined,
-    }).then((data) => {
+    });
+    playerLoaded?.then((data) => {
       if (!data) {
         return;
       }
@@ -301,10 +326,10 @@ async function setup() {
       console.log('Recieved data', data);
       window.fastStream.setupPoll();
 
-      chrome.runtime.sendMessage({
+      safeRuntimeMessage({
         type: MessageTypes.REQUEST_SOURCES,
       });
-    });
+    }).catch(() => {});
   } else {
     // if in iframe, require interaction
     if (window.self !== window.top) {
@@ -323,7 +348,7 @@ async function setup() {
     // Only the extension has a background page that tracks its frames; the web build has
     // no chrome object to reach for, and reaching for one here threw on every unload.
     if (EnvUtils.isExtension()) {
-      chrome.runtime.sendMessage({
+      safeRuntimeMessage({
         type: MessageTypes.FRAME_REMOVED,
       });
     }

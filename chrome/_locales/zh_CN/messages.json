@@ -320,6 +320,9 @@
     "player_subtitlesmenu_uploadbtn": {
         "message": "上传文件"
     },
+    "player_subtitlesmenu_folderbtn": {
+        "message": "选择本地字幕文件夹"
+    },
     "player_subtitlesmenu_urlbtn": {
         "message": "从 URL"
     },

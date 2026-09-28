@@ -11,6 +11,7 @@ export const SpecialHeaders = [
   'sec-fetch-site',
   'sec-fetch-mode',
   'sec-fetch-dest',
+  'sec-gpc',
   'sec-ch-ua',
   'sec-ch-ua-mobile',
   'sec-ch-ua-platform',
