@@ -790,6 +790,7 @@ export class SubtitlesManager extends EventEmitter {
         return;
       }
       let failed = result.errors?.length || 0;
+      const addedTracks = [];
       for (const file of result.files) {
         if (this.loadedLocalSubtitleNames.has(file.name)) continue;
         try {
@@ -800,12 +801,24 @@ export class SubtitlesManager extends EventEmitter {
             continue;
           }
           const added = this.loadTrackAndActivateBest(track, true);
-          if (added === track) this.localTracks.add(track);
+          if (added === track) {
+            this.localTracks.add(track);
+            addedTracks.push(track);
+          }
           this.loadedLocalSubtitleNames.add(file.name);
         } catch (error) {
           failed++;
           console.error('Unable to parse local subtitle', file.name, error);
         }
+      }
+      // A name match is explicit intent, so select a local subtitle even when
+      // autoEnableBestSubtitles is off. Prefer the default language.
+      if (addedTracks.length && !addedTracks.some((track) => this.activeTracks.indexOf(track) !== -1)) {
+        const defLang = this.settingsManager.getSettings().defaultLanguage;
+        addedTracks.sort((a, b) => {
+          return Localize.getLanguageMatchLevel(b.language, defLang) - Localize.getLanguageMatchLevel(a.language, defLang);
+        });
+        this.activateTrack(addedTracks[0]);
       }
       setStatus(`${code}: ${this.loadedLocalSubtitleNames.size} matching subtitle(s) added from ${result.name}.${failed ? ` ${failed} file(s) could not be loaded.` : ''}`);
     } catch (error) {
