@@ -156,6 +156,7 @@ export class SaveManager {
       DOMElements.saveNotifBanner.style.color = '';
       try {
         const start = performance.now();
+        this.client.downloadManager.ensureDownloaders(Math.max(1, this.client.options.maximumDownloaders || 1));
         result = await player.saveVideo({
           onProgress: (progress) => {
             this.setStatusMessage('save-video', Localize.getMessage('player_savevideo_progress', [Math.floor(progress * 100)]), 'info');

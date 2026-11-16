@@ -778,6 +778,10 @@ export default class MP4Player extends EventEmitter {
       for (let i = 0; i < lastFrag; i++) {
         const frag = frags[i];
         frag.addReference(ReferenceTypes.SAVER);
+        // Prefetch so downloads run in parallel; the write loop dedupes requests.
+        if (frag.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
+          this.downloadFragment(frag, -1).catch(() => {});
+        }
       }
     }
 

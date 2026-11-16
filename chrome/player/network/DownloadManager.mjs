@@ -188,6 +188,12 @@ export class DownloadManager {
     this.queueNext();
   }
 
+  ensureDownloaders(count) {
+    while (this.downloaders.length < count) {
+      this.addDownloader();
+    }
+  }
+
   removeDownloader() {
     this.testing = false;
     const downloader = this.downloaders.pop();

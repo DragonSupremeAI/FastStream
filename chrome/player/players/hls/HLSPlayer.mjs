@@ -131,6 +131,10 @@ export default class HLSPlayer extends EventEmitter {
 
     zippedFragments.forEach((data) => {
       data.fragment.addReference(ReferenceTypes.SAVER);
+      // Prefetch so downloads run in parallel; getEntry dedupes the request.
+      if (data.fragment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
+        this.downloadFragment(data.fragment, -1).catch(() => {});
+      }
       data.getEntry = async () => {
         if (data.fragment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
           while (true) {

@@ -401,6 +401,10 @@ export default class DashPlayer extends EventEmitter {
 
     zippedFragments.forEach((data) => {
       data.fragment.addReference(ReferenceTypes.SAVER);
+      // Prefetch so downloads run in parallel; getEntry dedupes the request.
+      if (data.fragment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
+        this.downloadFragment(data.fragment, -1).catch(() => {});
+      }
       data.getEntry = async () => {
         if (data.fragment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
           while (true) {
@@ -429,13 +433,12 @@ export default class DashPlayer extends EventEmitter {
     const audioInitSegment = audioFragments?.[-1];
 
     // if init segments are not downloaded, we will try to download them
-    if (videoInitSegment && videoInitSegment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
-      await this.downloadFragment(videoInitSegment, -1);
-    }
-
-    if (audioInitSegment && audioInitSegment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
-      await this.downloadFragment(audioInitSegment, -1);
-    }
+    await Promise.all([videoInitSegment, audioInitSegment].map((segment) => {
+      if (segment && segment.status !== DownloadStatus.DOWNLOAD_COMPLETE) {
+        return this.downloadFragment(segment, -1);
+      }
+      return null;
+    }));
 
     const videoInitSegmentData = videoInitSegment ? await this.client.downloadManager.getEntry(videoInitSegment.getContext()).getDataFromBlob() : null;
     const audioInitSegmentData = audioInitSegment ? await this.client.downloadManager.getEntry(audioInitSegment.getContext()).getDataFromBlob() : null;
