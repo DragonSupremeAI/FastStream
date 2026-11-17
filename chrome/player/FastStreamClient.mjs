@@ -1629,8 +1629,13 @@ export class FastStreamClient extends EventEmitter {
       throw new Error('No source is loaded!');
     }
 
-    // Will throw if browser blocks autoplay
-    await this.player.play();
+    // Resume audio in the same user gesture as play(), before buffering can
+    // expire transient activation. Starting either operation after awaiting the
+    // other can leave playback blocked or the video playing without sound.
+    const audioReady = this.audioContext &&
+      (this.audioContext.state === 'suspended' || this.audioContext.state === 'interrupted') ?
+      this.audioContext.resume() : Promise.resolve();
+    await Promise.all([audioReady, this.player.play()]);
 
     // Everything below will only run if browser allows playing the video
     // (e.g. not blocked by autoplay policy)
@@ -1640,9 +1645,6 @@ export class FastStreamClient extends EventEmitter {
 
     this.interfaceController.play();
 
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
-    }
     this.audioAnalyzer.updateBackgroundAnalyzer();
   }
 
@@ -2157,4 +2159,3 @@ export class FastStreamClient extends EventEmitter {
     this.player.getVideo().style.objectFit = 'cover';
   }
 }
-
