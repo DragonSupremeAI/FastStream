@@ -2,7 +2,7 @@
 import {MessageTypes} from './enums/MessageTypes.mjs';
 import {PlayerModes} from './enums/PlayerModes.mjs';
 import {FastStreamClient} from './FastStreamClient.mjs';
-import {EmbedAPI} from './modules/EmbedAPI.mjs'; // SPLICER:EXTENSION:REMOVE_LINE
+import {EmbedAPI} from './modules/EmbedAPI.mjs';
 import {Localize} from './modules/Localize.mjs';
 import {SubtitleTrack} from './SubtitleTrack.mjs';
 import {EnvUtils} from './utils/EnvUtils.mjs';
@@ -392,15 +392,24 @@ async function setup() {
     });
   }
 
-  // SPLICER:EXTENSION:REMOVE_START
-  if (!EnvUtils.isExtension()) {
-    // A page that embeds this player in an iframe cannot reach into the frame to drive
-    // it, the way the extension reaches into its own pages, so it is given a channel to
-    // ask through instead.
-    window.fastStreamEmbedAPI = new EmbedAPI(window.fastStream);
+  // A page that embeds this player in an iframe cannot reach into the frame to drive
+  // it, the way the extension reaches into its own pages, so it is given a channel to
+  // ask through instead. The same holds in the extension build — the player iframe
+  // replaces a site's video, and no page script or other extension's content script
+  // can run inside an extension frame — but the embedder there is whichever site the
+  // video was found on, so it only gets playback inspection and transport controls,
+  // not source loading or player-mutating commands.
+  if (window.self !== window.top || window.opener || !EnvUtils.isExtension()) {
+    const EXTENSION_EMBED_COMMANDS = [
+      'ping', 'getState', 'getLevels', 'getSubtitles', 'getChapters',
+      'play', 'pause', 'togglePlay', 'seek',
+      'setVolume', 'setMuted', 'setPlaybackRate',
+      'subscribe', 'unsubscribe',
+    ];
+    const commands = EnvUtils.isExtension() ? EXTENSION_EMBED_COMMANDS : null;
+    window.fastStreamEmbedAPI = new EmbedAPI(window.fastStream, {commands});
     window.fastStreamEmbedAPI.start();
   }
-  // SPLICER:EXTENSION:REMOVE_END
 }
 
 setup().catch((e)=>{

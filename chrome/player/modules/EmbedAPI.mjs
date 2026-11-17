@@ -1,4 +1,3 @@
-// SPLICER:EXTENSION:REMOVE_FILE
 import {DefaultPlayerEvents} from '../enums/DefaultPlayerEvents.mjs';
 import {PlayerModes} from '../enums/PlayerModes.mjs';
 import {SubtitleTrack} from '../SubtitleTrack.mjs';
@@ -10,9 +9,10 @@ import {VideoSource} from '../VideoSource.mjs';
 // drive it: the frame is on another origin, so the embedder cannot reach into it for the
 // client object the way the player's own scripts do. These messages are that reach.
 //
-// The extension build has no need for any of this. It talks to its pages over the
-// extension messaging APIs, which are not available to a web page, so the whole file is
-// spliced out of extension builds and the runtime still checks before starting.
+// The extension build ships it too, narrowed to a safe command set: when the player
+// iframe replaces a site's video, the page's frame — and other extensions' content
+// scripts, which can never run inside extension frames — have no other way to follow
+// or control playback.
 const COMMAND_TYPE = 'faststream:command';
 const RESPONSE_TYPE = 'faststream:response';
 const EVENT_TYPE = 'faststream:event';
@@ -650,12 +650,16 @@ const COMMANDS = {
 export class EmbedAPI {
   /**
    * @param {FastStreamClient} client - The player to expose.
+   * @param {Object} [options]
+   * @param {Array<string>} [options.commands] - Restricts which commands are
+   *     accepted. Anything not listed is answered like an unknown command.
    */
-  constructor(client) {
+  constructor(client, options = {}) {
     this.client = client;
     this.subscribers = [];
     this.playerContext = null;
     this.started = false;
+    this.allowedCommands = Array.isArray(options.commands) ? new Set(options.commands) : null;
     this.onMessage = this.handleMessage.bind(this);
   }
 
@@ -710,7 +714,7 @@ export class EmbedAPI {
     return {
       version: this.client.version,
       protocol: COMMAND_TYPE,
-      commands: Object.keys(COMMANDS),
+      commands: this.allowedCommands ? [...this.allowedCommands] : Object.keys(COMMANDS),
       events: API_EVENTS,
     };
   }
@@ -908,7 +912,8 @@ export class EmbedAPI {
     const sender = {source: event.source, origin: event.origin};
     const name = data.command;
 
-    if (typeof name !== 'string' || !Object.hasOwn(COMMANDS, name)) {
+    if (typeof name !== 'string' || !Object.hasOwn(COMMANDS, name) ||
+        (this.allowedCommands && !this.allowedCommands.has(name))) {
       this.respond(sender, data.id, {ok: false, error: {message: `Unknown command: ${name}`}});
       return;
     }
